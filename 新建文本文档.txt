@@ -1,0 +1,67 @@
+#include <LiquidCrystal.h>
+int val;
+int tempPin = 1;
+const int rs = 12, en = 10, d4 = 9, d5 = 8, d6 = 7,d7 =6;
+LiquidCrystal lcd(rs, en, d4, d5, d6, d7);
+byte sym[8] = {
+  0b00111,
+  0b00101,
+  0b00111,
+  0b00000,
+  0b00000,
+  0b00000,
+  0b00000,
+  0b00000
+};
+void setup() {
+    lcd.begin(16, 2);
+    lcd.createChar(0, sym);
+}
+void loop() {
+    lcd.print("Temperature:(C)");
+    val = analogRead(tempPin);
+    float mv = ( val/1024.0)*500;
+    lcd.setCursor(2,1); 
+    lcd.print(mv);
+    lcd.write(byte(0));
+    lcd.print("C");
+    delay(500);
+    lcd.clear();
+}
+unsigned int tempMin2 = 20;    //亮灯2温度
+unsigned int tempMin1 = 60;    //亮灯1温度
+unsigned int tempMax = 60;   //报警温度
+void setup2( ) {
+  Serial.begin(115200);           //串口初始化
+  analogReference(INTERNAL);  //调用板载1.1V基准源
+  pinMode(11, OUTPUT);
+  digitalWrite(11, LOW);
+  pinMode(9,OUTPUT);
+}
+
+void loop2( ) {
+   double analogVotage = 1.1*(double)analogRead(A3)/1024.0;
+   double temp = 100*analogVotage; //计算温度
+    unsigned int dutyCycle1; 
+     if(temp<=tempMin2){
+      digitalWrite(9,HIGH);
+    }
+    else{
+      digitalWrite(9,LOW);
+if (temp <= tempMin1) {         //小于亮灯门限值
+        dutyCycle1 = 0; digitalWrite(11, LOW);
+      }
+    else if (temp < tempMax) {   //小于报警门限
+         dutyCycle1 = (temp-tempMin1)*255/(tempMax-tempMin1);
+         digitalWrite(11, LOW);
+       }
+    else{           //发光二极管亮度最大值，并启动声音报警
+          dutyCycle1 = 255; analogWrite(11,200);
+        }
+    }
+    analogWrite(10,dutyCycle1); //控制发光二极管发光
+  Serial.print("Temp: ");  Serial.print(temp);
+  Serial.print(" Degrees    Duty cycle: ");
+  Serial.println(dutyCycle1);
+  delay (100); // 控制刷新速度
+}
